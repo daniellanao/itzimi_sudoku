@@ -10,7 +10,7 @@ export default function StartModal({ onStart }: StartModalProps) {
       <div className="w-full max-w-sm flex flex-col items-center gap-6">
         <div className="text-center">
           <h2 className="text-3xl font-bold text-[#FFFFFF] tracking-tight mb-2">
-            Beexo Sudoku
+            ITZIMI's Sudoku
           </h2>
           <p className="text-base text-[#8A8A8A] tracking-wide">
             Daily Challenge

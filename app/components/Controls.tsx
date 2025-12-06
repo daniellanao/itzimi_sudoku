@@ -10,7 +10,7 @@ export default function Controls({
   onDelete 
 }: ControlsProps) {
   return (
-    <div className="w-full flex flex-col gap-3 px-2 pt-1">
+    <div className="w-full flex flex-col gap-3 px-2 mt-2">
       {/* First Row: 1, 2, 3, 4, 5 */}
       <div className="flex gap-3">
         {[1, 2, 3, 4, 5].map((num) => (

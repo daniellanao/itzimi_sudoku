@@ -5,6 +5,7 @@ import Header from "./components/Header";
 import SudokuGrid from "./components/SudokuGrid";
 import Controls from "./components/Controls";
 import StartModal from "./components/StartModal";
+import Ranking from "./components/Ranking";
 import puzzleData from "./data/sudoku-puzzle.json";
 
 export default function Home() {
@@ -214,16 +215,75 @@ export default function Home() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Generate mock ranking data
+  const generateMockRanking = useCallback((userTime: number) => {
+    // Generate mock top players with varied times
+    const mockPlayers = [
+      { nickname: "SudokuMaster", time: Math.max(45, userTime * 0.3), improved: true },
+      { nickname: "PuzzlePro", time: Math.max(60, userTime * 0.4), improved: false },
+      { nickname: "GridGuru", time: Math.max(75, userTime * 0.5), improved: true },
+      { nickname: "NumberNinja", time: Math.max(90, userTime * 0.6), improved: false },
+      { nickname: "LogicLegend", time: Math.max(105, userTime * 0.7), improved: true },
+      { nickname: "BrainBox", time: Math.max(120, userTime * 0.8), improved: false },
+      { nickname: "MindMaster", time: Math.max(135, userTime * 0.9), improved: true },
+      { nickname: "QuickSolve", time: Math.max(150, userTime * 1.0), improved: false },
+    ];
+
+    // Add user to the list
+    const allPlayers = [...mockPlayers, { nickname: "You", time: userTime, improved: true }];
+
+    // Sort by time (ascending - lower is better)
+    allPlayers.sort((a, b) => a.time - b.time);
+
+    // Find user position
+    const userIndex = allPlayers.findIndex(p => p.nickname === "You");
+    const userPosition = userIndex + 1;
+
+    // Get top 6 (excluding user if they're in top 6)
+    const top6 = allPlayers
+      .filter((p, idx) => p.nickname !== "You" || idx >= 6)
+      .slice(0, 6)
+      .map((p, idx) => ({
+        position: idx + 1,
+        nickname: p.nickname,
+        time: p.time,
+        improved: p.improved,
+      }));
+
+    // If user is in top 6, replace the 6th player
+    if (userPosition <= 6) {
+      top6[userPosition - 1] = {
+        position: userPosition,
+        nickname: "You",
+        time: userTime,
+        improved: true,
+      };
+    }
+
+    return {
+      topPlayers: top6,
+      currentUser: {
+        position: userPosition,
+        nickname: "You",
+        time: userTime,
+        improved: true,
+      },
+    };
+  }, []);
+
+  // Generate ranking data when completed
+  const rankingData = isCompleted ? generateMockRanking(timer) : null;
+
   return (
     <div className="flex h-screen items-center justify-center bg-[#000000] font-sans overflow-hidden">
       {!gameStarted && <StartModal onStart={handleStart} />}
       
-      {gameStarted && (
+      {gameStarted && !isCompleted && (
         <main className="flex h-full w-full flex-col items-center justify-center px-4 py-1 mx-auto">
           <div className="flex flex-col items-center justify-between h-full w-full max-w-sm gap-0">
             <Header timer={formatTime(timer)} isCompleted={isCompleted} />
             
-            <div className="flex-1 flex items-center justify-center w-full min-h-0">
+            <div className="flex-1 flex flex-col items-start justify-start w-full min-h-0">
               <SudokuGrid 
                 grid={grid}
                 initialClues={initialClues}
@@ -231,14 +291,25 @@ export default function Home() {
                 onCellClick={handleCellClick}
                 selectedCell={selectedCell}
               />
-            </div>
 
             <Controls
               onNumberClick={handleNumberClick}
               onDelete={handleDelete}
             />
+            </div>
+
+            
           </div>
         </main>
+      )}
+
+      {gameStarted && isCompleted && rankingData && (
+        <div className="w-full h-full overflow-y-auto">
+          <Ranking
+            topPlayers={rankingData.topPlayers}
+            currentUser={rankingData.currentUser}
+          />
+        </div>
       )}
     </div>
   );

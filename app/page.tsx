@@ -10,6 +10,9 @@ import puzzleData from "./data/sudoku-puzzle.json";
 export default function Home() {
   // Track if game has started
   const [gameStarted, setGameStarted] = useState(false);
+  const [timer, setTimer] = useState(0); // Timer in seconds
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
   
   // Initialize with empty grid
   const [grid, setGrid] = useState<number[][]>(
@@ -23,6 +26,7 @@ export default function Home() {
   const [errorCells, setErrorCells] = useState<boolean[][]>(
     Array(9).fill(null).map(() => Array(9).fill(false))
   );
+  const [solution] = useState<number[][]>(puzzleData.solution);
 
   // Function to check for conflicts in row, column, and 3x3 box
   const checkConflicts = (grid: number[][], row: number, col: number): boolean => {
@@ -101,6 +105,67 @@ export default function Home() {
     setErrorCells(calculateErrors(grid));
   }, [grid, calculateErrors]);
 
+  // Timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    if (isTimerRunning && !isCompleted) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev + 1);
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [isTimerRunning, isCompleted]);
+
+  // Check if puzzle is completed correctly
+  const checkCompletion = useCallback((currentGrid: number[][]) => {
+    // Check if all cells are filled
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (currentGrid[r][c] === 0) {
+          return false;
+        }
+      }
+    }
+    
+    // Check if there are any errors (conflicts)
+    const errors = calculateErrors(currentGrid);
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (errors[r][c]) {
+          return false;
+        }
+      }
+    }
+    
+    // Check if grid matches solution
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (currentGrid[r][c] !== solution[r][c]) {
+          return false;
+        }
+      }
+    }
+    
+    return true;
+  }, [solution, calculateErrors]);
+
+  // Check completion whenever grid changes
+  useEffect(() => {
+    if (gameStarted && !isCompleted) {
+      const completed = checkCompletion(grid);
+      if (completed) {
+        setIsCompleted(true);
+        setIsTimerRunning(false);
+      }
+    }
+  }, [grid, gameStarted, isCompleted, checkCompletion]);
+
   const handleCellClick = (row: number, col: number) => {
     // Only allow selection of non-clue cells
     if (!initialClues[row][col]) {
@@ -138,6 +203,15 @@ export default function Home() {
 
   const handleStart = () => {
     setGameStarted(true);
+    setIsTimerRunning(true);
+    setTimer(0);
+  };
+
+  // Format timer as MM:SS
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -145,9 +219,9 @@ export default function Home() {
       {!gameStarted && <StartModal onStart={handleStart} />}
       
       {gameStarted && (
-        <main className="flex h-full w-full flex-col items-center justify-center px-4 py-2 mx-auto">
-          <div className="flex flex-col items-center justify-between h-full w-full max-w-sm gap-1">
-            <Header />
+        <main className="flex h-full w-full flex-col items-center justify-center px-4 py-1 mx-auto">
+          <div className="flex flex-col items-center justify-between h-full w-full max-w-sm gap-0">
+            <Header timer={formatTime(timer)} isCompleted={isCompleted} />
             
             <div className="flex-1 flex items-center justify-center w-full min-h-0">
               <SudokuGrid 

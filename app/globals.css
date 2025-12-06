@@ -1,26 +1,44 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Beexo Color Palette */
+  --background: #000000;
+  --card: #111111;
+  --cardLight: #151515;
+  --textPrimary: #FFFFFF;
+  --textSecondary: #8A8A8A;
+  --primary: #8F5EFF;
+  --primaryDark: #6D41E2;
+  --success: #00D26A;
+  --border: rgba(255, 255, 255, 0.08);
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-card: var(--card);
+  --color-cardLight: var(--cardLight);
+  --color-textPrimary: var(--textPrimary);
+  --color-textSecondary: var(--textSecondary);
+  --color-primary: var(--primary);
+  --color-primaryDark: var(--primaryDark);
+  --color-success: var(--success);
+  --color-border: var(--border);
+  --font-sans: var(--font-inter);
+  
+  /* Tailwind color definitions */
+  --color-beexo-bg: #000000;
+  --color-beexo-card: #111111;
+  --color-beexo-card-light: #151515;
+  --color-beexo-text-primary: #FFFFFF;
+  --color-beexo-text-secondary: #8A8A8A;
+  --color-beexo-primary: #8F5EFF;
+  --color-beexo-primary-dark: #6D41E2;
+  --color-beexo-success: #00D26A;
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--textPrimary);
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0.01em;
 }

@@ -45,11 +45,11 @@ export default function SudokuGrid({
             // Determine text color (error takes priority)
             let textColor = '';
             if (hasError) {
-              textColor = 'text-sm font-semibold text-[#FF4444]';
+              textColor = 'text-2xl font-semibold text-[#FF4444]';
             } else if (isClue) {
-              textColor = 'text-sm font-bold text-[#FFFFFF]';
+              textColor = 'text-2xl font-bold text-[#FFFFFF]';
             } else {
-              textColor = 'text-sm font-semibold text-[#8F5EFF]';
+              textColor = 'text-2xl font-semibold text-[#8F5EFF]';
             }
             
             return (

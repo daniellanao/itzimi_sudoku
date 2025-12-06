@@ -4,9 +4,13 @@ import { useState, useEffect, useCallback } from "react";
 import Header from "./components/Header";
 import SudokuGrid from "./components/SudokuGrid";
 import Controls from "./components/Controls";
+import StartModal from "./components/StartModal";
 import puzzleData from "./data/sudoku-puzzle.json";
 
 export default function Home() {
+  // Track if game has started
+  const [gameStarted, setGameStarted] = useState(false);
+  
   // Initialize with empty grid
   const [grid, setGrid] = useState<number[][]>(
     Array(9).fill(null).map(() => Array(9).fill(0))
@@ -132,28 +136,36 @@ export default function Home() {
     }
   };
 
+  const handleStart = () => {
+    setGameStarted(true);
+  };
+
   return (
     <div className="flex h-screen items-center justify-center bg-[#000000] font-sans overflow-hidden">
-      <main className="flex h-full w-full flex-col items-center justify-center px-4 py-4 mx-auto">
-        <div className="flex flex-col items-center justify-between h-full w-full max-w-sm gap-3">
-          <Header />
-          
-          <div className="flex-1 flex items-center justify-center w-full">
-            <SudokuGrid 
-              grid={grid}
-              initialClues={initialClues}
-              errorCells={errorCells}
-              onCellClick={handleCellClick}
-              selectedCell={selectedCell}
+      {!gameStarted && <StartModal onStart={handleStart} />}
+      
+      {gameStarted && (
+        <main className="flex h-full w-full flex-col items-center justify-center px-4 py-2 mx-auto">
+          <div className="flex flex-col items-center justify-between h-full w-full max-w-sm gap-1">
+            <Header />
+            
+            <div className="flex-1 flex items-center justify-center w-full min-h-0">
+              <SudokuGrid 
+                grid={grid}
+                initialClues={initialClues}
+                errorCells={errorCells}
+                onCellClick={handleCellClick}
+                selectedCell={selectedCell}
+              />
+            </div>
+
+            <Controls
+              onNumberClick={handleNumberClick}
+              onDelete={handleDelete}
             />
           </div>
-
-          <Controls
-            onNumberClick={handleNumberClick}
-            onDelete={handleDelete}
-          />
-        </div>
-      </main>
+        </main>
+      )}
     </div>
   );
 }

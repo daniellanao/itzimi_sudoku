@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { getOrGenerateNickname } from "../../lib/nicknameUtils";
-
+import Image from "next/image";
 interface StartModalProps {
   onStart: (nickname: string) => void;
 }
@@ -32,6 +32,11 @@ export default function StartModal({ onStart }: StartModalProps) {
     <div className="fixed inset-0 bg-[#000000]/95 flex items-center justify-center z-50 px-4">
       <div className="w-full max-w-sm flex flex-col items-center gap-6">
         <div className="text-center">
+
+          <div className="flex justify-center">
+            <Image src="/itzimi_sudoku.png" alt="Itzimi's Sudoku" width={200} height={200} className="mb-4" />
+          </div>
+
           <h2 className="text-3xl font-bold text-[#FFFFFF] tracking-tight mb-2">
             ITZIMI's Sudoku
           </h2>

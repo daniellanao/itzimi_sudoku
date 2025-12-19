@@ -32,19 +32,24 @@ export default function StartModal({ onStart }: StartModalProps) {
     <div className="fixed inset-0 bg-[#000000]/95 flex items-center justify-center z-50 px-4">
       <div className="w-full max-w-sm flex flex-col items-center gap-6">
         <div className="text-center">
+          <h2 className="text-3xl font-bold text-[#FFFFFF] tracking-tight mb-2">
+            ITZIMI's Sudoku
+          </h2>
 
           <div className="flex justify-center">
             <Image src="/itzimi_sudoku.png" alt="Itzimi's Sudoku" width={200} height={200} className="mb-4" />
           </div>
 
-          <h2 className="text-3xl font-bold text-[#FFFFFF] tracking-tight mb-2">
-            ITZIMI's Sudoku
-          </h2>
-          <p className="text-base text-[#8A8A8A] tracking-wide">
-            Daily Challenge 
+          
+          <p className="text-base font-bold mb-1">
+            ¡Nuevo reto diario disponible!
           </p>
-          <p className="text-base text-[#8A8A8A] tracking-wide">
-            v 1.0.0 
+          <p className="text-base text-[#8A8A8A] tracking-wide mb-1">
+            Solo puedes jugar una vez al día.<br/> ¿Listo para intentarlo?
+          </p>
+          <p className="text-xs text-[#8A8A8A] tracking-wide">
+            ⏱️ Tu tiempo comienza al iniciar el juego y se detiene al completarlo correctamente.<br />
+            🏆 Compite por un lugar en el ranking diario y semanal!
           </p>
         </div>
         

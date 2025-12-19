@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { getOrGenerateNickname } from "../../lib/nicknameUtils";
 
 interface StartModalProps {
@@ -7,10 +8,24 @@ interface StartModalProps {
 }
 
 export default function StartModal({ onStart }: StartModalProps) {
-  const handleStart = () => {
-    // Automatically generate or get nickname from localStorage
-    const nickname = getOrGenerateNickname();
-    onStart(nickname);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleStart = async () => {
+    setIsLoading(true);
+    try {
+      // Automatically generate or get nickname (tries XO Connect first, then fallback)
+      const nickname = await getOrGenerateNickname();
+      onStart(nickname);
+    } catch (error) {
+      console.error('Error getting nickname:', error);
+      // Fallback to timestamp-based nickname
+      const { generateTimestampNickname } = await import("../../lib/nicknameUtils");
+      const fallbackNickname = generateTimestampNickname();
+      localStorage.setItem("sudoku_nickname", fallbackNickname);
+      onStart(fallbackNickname);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -21,19 +36,23 @@ export default function StartModal({ onStart }: StartModalProps) {
             ITZIMI's Sudoku
           </h2>
           <p className="text-base text-[#8A8A8A] tracking-wide">
-            Daily Challenge
+            Daily Challenge 
+          </p>
+          <p className="text-base text-[#8A8A8A] tracking-wide">
+            v 1.0.0 
           </p>
         </div>
         
         <button
           onClick={handleStart}
-          className="w-full px-8 py-6 rounded-2xl font-bold text-xl text-white tracking-wide transition-all hover:opacity-90 active:scale-95"
+          disabled={isLoading}
+          className="w-full px-8 py-6 rounded-2xl font-bold text-xl text-white tracking-wide transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
             background: 'linear-gradient(135deg, #8F5EFF 0%, #6D41E2 100%)',
             boxShadow: '0 8px 30px rgba(143, 94, 255, 0.4)'
           }}
         >
-          START
+          {isLoading ? 'Loading...' : 'START'}
         </button>
       </div>
     </div>

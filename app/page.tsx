@@ -117,8 +117,8 @@ export default function Home() {
         setIsLoading(true);
         setError(null);
         
-        // Get or generate player nickname
-        const nickname = getOrGenerateNickname();
+        // Get or generate player nickname (tries XO Connect first, then fallback)
+        const nickname = await getOrGenerateNickname();
         setPlayerNickname(nickname);
         
         // Load today's puzzle

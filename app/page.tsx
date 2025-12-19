@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+
+// Mark page as dynamic to prevent prerendering
+export const dynamic = 'force-dynamic';
 import Header from "./components/Header";
 import SudokuGrid from "./components/SudokuGrid";
 import Controls from "./components/Controls";

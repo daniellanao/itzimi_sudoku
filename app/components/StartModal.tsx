@@ -1,10 +1,18 @@
 "use client";
 
+import { getOrGenerateNickname } from "../../lib/nicknameUtils";
+
 interface StartModalProps {
-  onStart: () => void;
+  onStart: (nickname: string) => void;
 }
 
 export default function StartModal({ onStart }: StartModalProps) {
+  const handleStart = () => {
+    // Automatically generate or get nickname from localStorage
+    const nickname = getOrGenerateNickname();
+    onStart(nickname);
+  };
+
   return (
     <div className="fixed inset-0 bg-[#000000]/95 flex items-center justify-center z-50 px-4">
       <div className="w-full max-w-sm flex flex-col items-center gap-6">
@@ -18,7 +26,7 @@ export default function StartModal({ onStart }: StartModalProps) {
         </div>
         
         <button
-          onClick={onStart}
+          onClick={handleStart}
           className="w-full px-8 py-6 rounded-2xl font-bold text-xl text-white tracking-wide transition-all hover:opacity-90 active:scale-95"
           style={{
             background: 'linear-gradient(135deg, #8F5EFF 0%, #6D41E2 100%)',

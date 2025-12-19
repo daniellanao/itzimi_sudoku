@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Beexo Sudoku",
+  title: "Itzimi's Sudoku",
   description: "Daily Sudoku challenge with leaderboard",
 };
 

@@ -6,7 +6,14 @@ import SudokuGrid from "./components/SudokuGrid";
 import Controls from "./components/Controls";
 import StartModal from "./components/StartModal";
 import Ranking from "./components/Ranking";
-import puzzleData from "./data/sudoku-puzzle.json";
+import { 
+  getTodaySudoku, 
+  getSudokuScores, 
+  getPlayerScore,
+  saveScore, 
+  generateRankingData 
+} from "../lib/sudokuService";
+import { getOrGenerateNickname } from "../lib/nicknameUtils";
 
 export default function Home() {
   // Track if game has started
@@ -14,6 +21,8 @@ export default function Home() {
   const [timer, setTimer] = useState(0); // Timer in seconds
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Initialize with empty grid
   const [grid, setGrid] = useState<number[][]>(
@@ -27,7 +36,28 @@ export default function Home() {
   const [errorCells, setErrorCells] = useState<boolean[][]>(
     Array(9).fill(null).map(() => Array(9).fill(false))
   );
-  const [solution] = useState<number[][]>(puzzleData.solution);
+  const [solution, setSolution] = useState<number[][]>(
+    Array(9).fill(null).map(() => Array(9).fill(0))
+  );
+  const [hasSolution, setHasSolution] = useState(false);
+  const [sudokuId, setSudokuId] = useState<number | null>(null);
+  const [playerNickname, setPlayerNickname] = useState<string>("");
+  const [rankingData, setRankingData] = useState<{
+    topPlayers: Array<{
+      position: number;
+      nickname: string;
+      time: number;
+      improved?: boolean;
+    }>;
+    currentUser: {
+      position: number;
+      nickname: string;
+      time: number;
+      improved?: boolean;
+    };
+  } | null>(null);
+  const [isLoadingRanking, setIsLoadingRanking] = useState(false);
+  const [hasAlreadyPlayed, setHasAlreadyPlayed] = useState(false);
 
   // Function to check for conflicts in row, column, and 3x3 box
   const checkConflicts = (grid: number[][], row: number, col: number): boolean => {
@@ -77,29 +107,76 @@ export default function Home() {
     return errors;
   }, []);
 
-  // Load puzzle on mount
+  // Load puzzle from Supabase on mount and check if player has already played
   useEffect(() => {
-    const loadPuzzle = () => {
-      const puzzle = puzzleData.puzzle;
-      const clues: boolean[][] = Array(9).fill(null).map(() => Array(9).fill(false));
-      
-      // Set initial grid and track which cells are clues
-      const newGrid = puzzle.map((row, r) =>
-        row.map((cell, c) => {
-          if (cell !== 0) {
-            clues[r][c] = true;
+    const loadPuzzleAndCheckPlayed = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        // Get or generate player nickname
+        const nickname = getOrGenerateNickname();
+        setPlayerNickname(nickname);
+        
+        // Load today's puzzle
+        const sudokuData = await getTodaySudoku();
+        setSudokuId(sudokuData.id);
+        
+        // Check if player has already played today
+        const playerScore = await getPlayerScore(sudokuData.id, nickname);
+        
+        if (playerScore) {
+          // Player has already played, show leaderboard directly
+          setHasAlreadyPlayed(true);
+          setIsLoadingRanking(true);
+          
+          try {
+            // Fetch all scores for this sudoku
+            const scores = await getSudokuScores(sudokuData.id);
+            
+            // Generate ranking data
+            const ranking = generateRankingData(scores, nickname, playerScore.time_seconds);
+            setRankingData(ranking);
+          } catch (err) {
+            console.error('Error loading ranking:', err);
+            setError(err instanceof Error ? err.message : 'Failed to load ranking');
+          } finally {
+            setIsLoadingRanking(false);
           }
-          return cell;
-        })
-      );
-      
-      setGrid(newGrid);
-      setInitialClues(clues);
-      setErrorCells(calculateErrors(newGrid));
+        } else {
+          // Player hasn't played yet, load puzzle for game
+          const clues: boolean[][] = Array(9).fill(null).map(() => Array(9).fill(false));
+          
+          // Set initial grid and track which cells are clues
+          const newGrid = sudokuData.puzzle.map((row, r) =>
+            row.map((cell, c) => {
+              if (cell !== 0) {
+                clues[r][c] = true;
+              }
+              return cell;
+            })
+          );
+          
+          setGrid(newGrid);
+          setInitialClues(clues);
+          setSolution(sudokuData.solution);
+          // Check if solution is valid (not all zeros)
+          const hasValidSolution = sudokuData.solution.some(row => 
+            row.some(cell => cell !== 0)
+          );
+          setHasSolution(hasValidSolution);
+          setErrorCells(calculateErrors(newGrid));
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load puzzle');
+        console.error('Error loading puzzle:', err);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    loadPuzzle();
-  }, []);
+    loadPuzzleAndCheckPlayed();
+  }, [calculateErrors]);
 
   // Recalculate errors whenever grid changes
   useEffect(() => {
@@ -144,17 +221,20 @@ export default function Home() {
       }
     }
     
-    // Check if grid matches solution
-    for (let r = 0; r < 9; r++) {
-      for (let c = 0; c < 9; c++) {
-        if (currentGrid[r][c] !== solution[r][c]) {
-          return false;
+    // Only check against solution if we have a valid solution
+    // If no solution is available, completion is valid if all cells are filled and no errors
+    if (hasSolution) {
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (currentGrid[r][c] !== solution[r][c]) {
+            return false;
+          }
         }
       }
     }
     
     return true;
-  }, [solution, calculateErrors]);
+  }, [solution, calculateErrors, hasSolution]);
 
   // Check completion whenever grid changes
   useEffect(() => {
@@ -202,7 +282,8 @@ export default function Home() {
     }
   };
 
-  const handleStart = () => {
+  const handleStart = (nickname: string) => {
+    setPlayerNickname(nickname);
     setGameStarted(true);
     setIsTimerRunning(true);
     setTimer(0);
@@ -215,70 +296,94 @@ export default function Home() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Generate mock ranking data
-  const generateMockRanking = useCallback((userTime: number) => {
-    // Generate mock top players with varied times
-    const mockPlayers = [
-      { nickname: "SudokuMaster", time: Math.max(45, userTime * 0.3), improved: true },
-      { nickname: "PuzzlePro", time: Math.max(60, userTime * 0.4), improved: false },
-      { nickname: "GridGuru", time: Math.max(75, userTime * 0.5), improved: true },
-      { nickname: "NumberNinja", time: Math.max(90, userTime * 0.6), improved: false },
-      { nickname: "LogicLegend", time: Math.max(105, userTime * 0.7), improved: true },
-      { nickname: "BrainBox", time: Math.max(120, userTime * 0.8), improved: false },
-      { nickname: "MindMaster", time: Math.max(135, userTime * 0.9), improved: true },
-      { nickname: "QuickSolve", time: Math.max(150, userTime * 1.0), improved: false },
-    ];
-
-    // Add user to the list
-    const allPlayers = [...mockPlayers, { nickname: "You", time: userTime, improved: true }];
-
-    // Sort by time (ascending - lower is better)
-    allPlayers.sort((a, b) => a.time - b.time);
-
-    // Find user position
-    const userIndex = allPlayers.findIndex(p => p.nickname === "You");
-    const userPosition = userIndex + 1;
-
-    // Get top 6 (excluding user if they're in top 6)
-    const top6 = allPlayers
-      .filter((p, idx) => p.nickname !== "You" || idx >= 6)
-      .slice(0, 6)
-      .map((p, idx) => ({
-        position: idx + 1,
-        nickname: p.nickname,
-        time: p.time,
-        improved: p.improved,
-      }));
-
-    // If user is in top 6, replace the 6th player
-    if (userPosition <= 6) {
-      top6[userPosition - 1] = {
-        position: userPosition,
-        nickname: "You",
-        time: userTime,
-        improved: true,
-      };
-    }
-
-    return {
-      topPlayers: top6,
-      currentUser: {
-        position: userPosition,
-        nickname: "You",
-        time: userTime,
-        improved: true,
-      },
+  // Save score and load ranking data when game is completed
+  useEffect(() => {
+    const saveScoreAndLoadRanking = async () => {
+      if (isCompleted && sudokuId && playerNickname) {
+        setIsLoadingRanking(true);
+        
+        // Save the player's score first (critical operation)
+        try {
+          await saveScore(sudokuId, playerNickname, timer);
+          console.log('Score saved successfully:', { sudokuId, playerNickname, timeSeconds: timer });
+        } catch (saveError) {
+          console.error('Error saving score:', saveError);
+          setError(`Failed to save score: ${saveError instanceof Error ? saveError.message : 'Unknown error'}`);
+          setIsLoadingRanking(false);
+          return; // Don't continue if score save fails
+        }
+        
+        // Fetch all scores for this sudoku and load ranking
+        try {
+          const scores = await getSudokuScores(sudokuId);
+          
+          // Generate ranking data
+          const ranking = generateRankingData(scores, playerNickname, timer);
+          setRankingData(ranking);
+        } catch (err) {
+          console.error('Error loading ranking:', err);
+          // Score was saved successfully, so just show a warning
+          setError(`Score saved, but failed to load ranking: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        } finally {
+          setIsLoadingRanking(false);
+        }
+      }
     };
-  }, []);
 
-  // Generate ranking data when completed
-  const rankingData = isCompleted ? generateMockRanking(timer) : null;
+    saveScoreAndLoadRanking();
+  }, [isCompleted, sudokuId, playerNickname, timer]);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#000000] font-sans">
+        <div className="text-white text-xl">Loading puzzle...</div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#000000] font-sans">
+        <div className="text-red-500 text-xl text-center px-4">
+          <p className="mb-2">Error loading puzzle</p>
+          <p className="text-sm text-gray-400">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen items-center justify-center bg-[#000000] font-sans overflow-hidden">
-      {!gameStarted && <StartModal onStart={handleStart} />}
+      {/* Show leaderboard if player has already played today */}
+      {hasAlreadyPlayed && (
+        <div className="w-full h-full overflow-y-auto">
+          {isLoadingRanking ? (
+            <div className="flex h-screen items-center justify-center bg-[#000000] font-sans">
+              <div className="text-white text-xl">Loading leaderboard...</div>
+            </div>
+          ) : rankingData ? (
+            <Ranking
+              topPlayers={rankingData.topPlayers}
+              currentUser={rankingData.currentUser}
+            />
+          ) : (
+            <div className="flex h-screen items-center justify-center bg-[#000000] font-sans">
+              <div className="text-red-500 text-xl text-center px-4">
+                <p>Error loading leaderboard</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       
-      {gameStarted && !isCompleted && (
+      {/* Show game interface if player hasn't played yet */}
+      {!hasAlreadyPlayed && (
+        <>
+          {!gameStarted && <StartModal onStart={handleStart} />}
+          
+          {gameStarted && !isCompleted && (
         <main className="flex h-full w-full flex-col items-center justify-center px-4 py-1 mx-auto">
           <div className="flex flex-col items-center justify-between h-full w-full max-w-sm gap-0">
             <Header timer={formatTime(timer)} isCompleted={isCompleted} />
@@ -303,14 +408,28 @@ export default function Home() {
         </main>
       )}
 
-      {gameStarted && isCompleted && rankingData && (
-        <div className="w-full h-full overflow-y-auto">
-          <Ranking
-            topPlayers={rankingData.topPlayers}
-            currentUser={rankingData.currentUser}
-          />
-        </div>
-      )}
+            {gameStarted && isCompleted && (
+              <div className="w-full h-full overflow-y-auto">
+                {isLoadingRanking ? (
+                  <div className="flex h-screen items-center justify-center bg-[#000000] font-sans">
+                    <div className="text-white text-xl">Loading leaderboard...</div>
+                  </div>
+                ) : rankingData ? (
+                  <Ranking
+                    topPlayers={rankingData.topPlayers}
+                    currentUser={rankingData.currentUser}
+                  />
+                ) : (
+                  <div className="flex h-screen items-center justify-center bg-[#000000] font-sans">
+                    <div className="text-red-500 text-xl text-center px-4">
+                      <p>Error loading leaderboard</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
     </div>
   );
 }

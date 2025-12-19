@@ -15,7 +15,9 @@ interface RankingProps {
 
 export default function Ranking({ topPlayers, currentUser }: RankingProps) {
   const formatTime = (seconds: number): string => {
-    return seconds.toFixed(2);
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   const getMedalColor = (position: number): string => {
@@ -115,7 +117,7 @@ export default function Ranking({ topPlayers, currentUser }: RankingProps) {
 
           {/* Time */}
           <span className="text-base font-bold text-[#FFFFFF] whitespace-nowrap">
-            {formatTime(player.time)}s
+            {formatTime(player.time)}
           </span>
         </div>
       </div>
